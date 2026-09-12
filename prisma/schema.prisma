@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  phone     String?
+  role      String
+  createdAt DateTime @default(now())
+
+  farmerProfile      FarmerProfile?
+  transporterProfile TransporterProfile?
+  listings           ResidueListing[]
+  pickupJobsAsFarmer PickupJob[]         @relation("FarmerPickupJobs")
+  matchesAsFarmer    Match[]             @relation("FarmerMatches")
+  verifications      Verification[]
+  impactRecords      ImpactRecord[]
+}
+
+model FarmerProfile {
+  id       Int    @id @default(autoincrement())
+  userId   Int    @unique
+  village  String
+  district String
+  state    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Processor {
+  id                  Int    @id @default(autoincrement())
+  name                String
+  location            String
+  acceptedMaterials   String
+  capacity            Float
+  currentAvailability Float
+  contact             String
+  status              String
+
+  listings   ResidueListing[]
+  pickupJobs PickupJob[]
+  matches    Match[]
+}
+
+model TransporterProfile {
+  id            Int    @id @default(autoincrement())
+  userId        Int    @unique
+  vehicleType   String
+  vehicleNumber String
+  capacity      Float
+  location      String
+  status        String
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pickupJobs PickupJob[]
+}
+
+model ResidueListing {
+  id                  Int      @id @default(autoincrement())
+  cropType            String
+  residueType         String
+  quantity            Float
+  location            String
+  availableFrom       DateTime
+  preferredPickupDate DateTime
+  status              String
+
+  farmerId    Int
+  processorId Int?
+
+  farmer     User        @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  processor  Processor?  @relation(fields: [processorId], references: [id])
+  matches    Match[]
+  pickupJobs PickupJob[]
+}
+
+model Match {
+  id          Int      @id @default(autoincrement())
+  farmerId    Int
+  processorId Int
+  listingId   Int
+  score       Float
+  status      String
+  createdAt   DateTime @default(now())
+
+  farmer    User           @relation("FarmerMatches", fields: [farmerId], references: [id], onDelete: Cascade)
+  processor Processor      @relation(fields: [processorId], references: [id], onDelete: Cascade)
+  listing   ResidueListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model PickupJob {
+  id            Int @id @default(autoincrement())
+  farmerId      Int
+  listingId     Int
+  processorId   Int
+  transporterId Int
+
+  scheduledDate DateTime
+  status        String
+  notes         String?
+
+  farmer      User               @relation("FarmerPickupJobs", fields: [farmerId], references: [id], onDelete: Cascade)
+  listing     ResidueListing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  processor   Processor          @relation(fields: [processorId], references: [id], onDelete: Cascade)
+  transporter TransporterProfile @relation(fields: [transporterId], references: [id], onDelete: Cascade)
+
+  verification Verification?
+  impactRecord ImpactRecord?
+}
+
+model Verification {
+  id          Int      @id @default(autoincrement())
+  pickupJobId Int      @unique
+  userId      Int
+  verifiedAt  DateTime
+  method      String
+  status      String
+  notes       String?
+
+  pickupJob PickupJob @relation(fields: [pickupJobId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ImpactRecord {
+  id                Int      @id @default(autoincrement())
+  pickupJobId       Int      @unique
+  userId            Int
+  residueQuantity   Float
+  estimatedCO2Saved Float
+  recordedAt        DateTime @default(now())
+
+  pickupJob PickupJob @relation(fields: [pickupJobId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
