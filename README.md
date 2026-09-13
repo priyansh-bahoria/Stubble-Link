@@ -81,7 +81,7 @@ Make sure you have:
 
 ### Installation
 
-Clone the repository:
+
 
 ```bash
 git clone <YOUR_REPOSITORY_URL>
